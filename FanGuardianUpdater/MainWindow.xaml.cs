@@ -59,11 +59,18 @@ namespace FanGuardianWpf
 
         private async void LoadVersionsAsync()
         {
-            List<string> versions = await FetchControllerVersionsAsync(controllerReleasesUrl);
-            ControllerVersionComboBox.ItemsSource = versions;
+            try
+            {
+                List<string> versions = await FetchControllerVersionsAsync(controllerReleasesUrl);
+                ControllerVersionComboBox.ItemsSource = versions;
 
-            versions = await FetchControllerVersionsAsync(displayReleasesUrl);
-            DisplayVersionComboBox.ItemsSource = versions;
+                versions = await FetchControllerVersionsAsync(displayReleasesUrl);
+                DisplayVersionComboBox.ItemsSource = versions;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load firmware versions:\n{ex.Message}", "Network Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private async Task<List<string>> FetchControllerVersionsAsync(string url)
@@ -414,11 +421,52 @@ namespace FanGuardianWpf
         }
 
 
+        private void ShowLog(TextBox logBox, Button toggle)
+        {
+            // Close the other log first so both are never open simultaneously
+            if (logBox == ControllerLogTextBox && DisplayLogTextBox.Visibility == Visibility.Visible)
+            {
+                DisplayLogTextBox.Visibility = Visibility.Collapsed;
+                DisplayLogToggle.Content = "▸  Log";
+            }
+            else if (logBox == DisplayLogTextBox && ControllerLogTextBox.Visibility == Visibility.Visible)
+            {
+                ControllerLogTextBox.Visibility = Visibility.Collapsed;
+                ControllerLogToggle.Content = "▸  Log";
+            }
+
+            logBox.Visibility = Visibility.Visible;
+            toggle.Content = "▾  Log";
+        }
+
+        private void HideLog(TextBox logBox, Button toggle)
+        {
+            logBox.Visibility = Visibility.Collapsed;
+            toggle.Content = "▸  Log";
+        }
+
+        private void ControllerLogToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (ControllerLogTextBox.Visibility == Visibility.Collapsed)
+                ShowLog(ControllerLogTextBox, ControllerLogToggle);
+            else
+                HideLog(ControllerLogTextBox, ControllerLogToggle);
+        }
+
+        private void DisplayLogToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (DisplayLogTextBox.Visibility == Visibility.Collapsed)
+                ShowLog(DisplayLogTextBox, DisplayLogToggle);
+            else
+                HideLog(DisplayLogTextBox, DisplayLogToggle);
+        }
+
         private async void ControllerFlashButton_Click(object sender, RoutedEventArgs e)
         {
             if (ControllerOfficialRb.IsChecked == true)
             {
                 ControllerLogTextBox.Text = "";
+                ShowLog(ControllerLogTextBox, ControllerLogToggle);
                 await runControllerUpdate();
             }
             else await runControllerUpdateCustom();
@@ -429,6 +477,7 @@ namespace FanGuardianWpf
             if (DisplayOfficialRb.IsChecked == true)
             {
                 DisplayLogTextBox.Text = "";
+                ShowLog(DisplayLogTextBox, DisplayLogToggle);
                 await runDisplayUpdate();
             }
             else await runDisplayUpdateCustom();
@@ -436,6 +485,8 @@ namespace FanGuardianWpf
 
         private void ControllerRadioButton_Checked(object sender, RoutedEventArgs e)
         {
+            if (ControllerVersionComboBox == null) return;
+
             if (ControllerOfficialRb.IsChecked == true)
             {
                 ControllerVersionComboBox.IsEnabled = true;
@@ -446,12 +497,15 @@ namespace FanGuardianWpf
                 ControllerVersionComboBox.IsEnabled = false;
                 ControllerVersionComboBox.SelectedItem = null;
                 ControllerCustomFirmwareBrowseButton.IsEnabled = true;
-                MessageBox.Show("You are about to flash a custom firmware to the FanGuardian controller! \r\nYou are doing this at your own risk! This may void the warranty.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Dispatcher.BeginInvoke(new Action(() =>
+                    MessageBox.Show("You are about to flash a custom firmware to the FanGuardian controller! \r\nYou are doing this at your own risk! This may void the warranty.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning)));
             }
         }
 
         private void DisplayRadioButton_Checked(object sender, RoutedEventArgs e)
         {
+            if (DisplayVersionComboBox == null) return;
+
             if (DisplayOfficialRb.IsChecked == true)
             {
                 DisplayVersionComboBox.IsEnabled = true;
@@ -462,7 +516,8 @@ namespace FanGuardianWpf
                 DisplayVersionComboBox.IsEnabled = false;
                 DisplayVersionComboBox.SelectedItem = null;
                 DisplayCustomFirmwareBrowseButton.IsEnabled = true;
-                MessageBox.Show("You are about to flash a custom firmware to the FanGuardian display! \r\nYou are doing this at your own risk! This may void the warranty.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Dispatcher.BeginInvoke(new Action(() =>
+                    MessageBox.Show("You are about to flash a custom firmware to the FanGuardian display! \r\nYou are doing this at your own risk! This may void the warranty.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning)));
             }
         }
 
@@ -513,6 +568,16 @@ namespace FanGuardianWpf
             MessageBox.Show("Link copied to clipboard: " + e.Uri.AbsoluteUri);
 
             e.Handled = true;
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
+
+        private void btnClose_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }
