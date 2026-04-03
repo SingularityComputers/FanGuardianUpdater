@@ -3,7 +3,7 @@ The FanGuardian Updater is a software designed to change the firmware on _FanGua
 
 
 <p align="center">
-  <img src="img/fagupdater-main.png" alt="FanGuardian Updater" width="374px" height="483px">
+  <img src="img/fagupdater-main.png" alt="FanGuardian Updater" width="40%">
 </p>
 
 
